@@ -3,6 +3,7 @@ name = "simple-socks-rust"
 version = "0.1.0"
 edition = "2024"
 description = "Minimal no-auth SOCKS4/5 proxy server"
+publish = false
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = [
