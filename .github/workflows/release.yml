@@ -20,27 +20,15 @@ jobs:
         include:
           # x64 standar (Static musl)
           - target: x86_64-unknown-linux-musl
-            artifact_name: socks-server-x86_64-musl
+            artifact_name: simple-socks-rust-x86_64-musl
 
           # Linksys EA4500 / Marvell Kirkwood (ARMv5TE soft-float)
           - target: armv5te-unknown-linux-musleabi
-            artifact_name: socks-server-armv5te-musl
+            artifact_name: simple-socks-rust-armv5te-musl
 
           # OpenWrt / Router ARM64
           - target: aarch64-unknown-linux-musl
-            artifact_name: socks-server-aarch64-musl
-
-          # OpenWrt / Router ARMv7
-          - target: armv7-unknown-linux-muslebihf
-            artifact_name: socks-server-armv7-musl
-
-          # OpenWrt / Router MIPS (Little Endian - MT7621 dsb)
-          - target: mipsel-unknown-linux-musl
-            artifact_name: socks-server-mipsel-musl
-
-          # OpenWrt / Router MIPS (Big Endian - AR71XX dsb)
-          - target: mips-unknown-linux-musl
-            artifact_name: socks-server-mips-musl
+            artifact_name: simple-socks-rust-aarch64-musl
 
     steps:
       - name: Checkout repository
