@@ -1,10 +1,14 @@
-name: Build Release Binaries
+name: Build & Release Binaries
 
 on:
   push:
     tags:
-      - 'v*' # Dijalankan setiap kali Anda push tag versi, contoh: v1.0.0
-  workflow_dispatch: # Memungkinkan trigger manual dari tab Actions di GitHub
+      - 'v*' # Dijalankan setiap kali push tag, contoh: v1.0.0, v0.1.0-alpha
+  workflow_dispatch: # Trigger manual dari dashboard GitHub Actions
+
+# Memberikan izin ke GITHUB_TOKEN untuk membuat Release
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -18,6 +22,10 @@ jobs:
           - target: x86_64-unknown-linux-musl
             artifact_name: socks-server-x86_64-musl
 
+          # Linksys EA4500 / Marvell Kirkwood (ARMv5TE soft-float)
+          - target: armv5te-unknown-linux-musleabi
+            artifact_name: socks-server-armv5te-musl
+
           # OpenWrt / Router ARM64
           - target: aarch64-unknown-linux-musl
             artifact_name: socks-server-aarch64-musl
@@ -25,16 +33,12 @@ jobs:
           # OpenWrt / Router ARMv7
           - target: armv7-unknown-linux-muslebihf
             artifact_name: socks-server-armv7-musl
-          
-          # Linksys EA4500 / Marvell Kirkwood (ARMv5TE soft-float)
-          - target: armv5te-unknown-linux-musleabi
-            artifact_name: socks-server-armv5te-musl
 
-          # OpenWrt / Router MIPS (Little Endian - cth: MediaTek MT7621)
+          # OpenWrt / Router MIPS (Little Endian - MT7621 dsb)
           - target: mipsel-unknown-linux-musl
             artifact_name: socks-server-mipsel-musl
 
-          # OpenWrt / Router MIPS (Big Endian - cth: Atheros AR71XX)
+          # OpenWrt / Router MIPS (Big Endian - AR71XX dsb)
           - target: mips-unknown-linux-musl
             artifact_name: socks-server-mips-musl
 
@@ -47,15 +51,40 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # Menginstall 'cross' untuk manajemen Docker cross-compilation
       - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Build binary
         run: cross build --release --target ${{ matrix.target }}
 
-      - name: Upload Artifacts
+      # Kompres biner menjadi .tar.gz agar menghemat ruang dan menjaga chmod +x
+      - name: Compress binary
+        run: |
+          cd target/${{ matrix.target }}/release/
+          tar -czvf ${{ matrix.artifact_name }}.tar.gz simple-socks-rust
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: target/${{ matrix.target }}/release/socks-server
+          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}.tar.gz
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Unduh seluruh hasil build dari job 'build' di atas
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # Buat GitHub Release dan lampirkan seluruh file .tar.gz
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*/*.tar.gz
+          generate_release_notes: true # Otomatis buat changelog dari commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
